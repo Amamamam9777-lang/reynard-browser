@@ -79,8 +79,10 @@ struct UserAgentPolicy {
         
         // It's sad to have the Android UA, because Gecko + iOS
         // is a super weird combination that websites don't expect!
-        let mobileUserAgent = "Mozilla/5.0 (Android 15; Mobile; rv:\(geckoMajorVersion).0) Gecko/\(geckoMajorVersion).0 Firefox/\(geckoMajorVersion).0"
-        let desktopUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:\(geckoMajorVersion).0) Gecko/20100101 Firefox/\(geckoMajorVersion).0"
+        // Fixed Safari-style User-Agent requested for this Reynard build.
+        // This changes the User-Agent string only; it does not turn GeckoView into Safari/WebKit.
+        let mobileUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1"
+        let desktopUserAgent = mobileUserAgent
         let mobilePlatform = "Linux armv81"
         let desktopPlatform = "Intel Mac OS X 10.15"
         let mobileAppVersion = "5.0 (Android 15)"
