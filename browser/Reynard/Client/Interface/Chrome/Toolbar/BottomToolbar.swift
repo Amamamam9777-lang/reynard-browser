@@ -9,8 +9,8 @@ import UIKit
 
 final class BottomToolbar: UIView {
     private enum UX {
-        static let bottomToolbarStandardContentHeight: CGFloat = 94
-        static let bottomToolbarCompactContentHeight: CGFloat = 44
+        static let bottomToolbarStandardContentHeight: CGFloat = 60
+        static let bottomToolbarCompactContentHeight: CGFloat = 52
         static let bottomToolbarButtonStackHeight: CGFloat = 30
         static let bottomToolbarButtonStackBottomInset: CGFloat = 5
         static let addressBarHorizontalInset: CGFloat = 12
@@ -190,8 +190,9 @@ final class BottomToolbar: UIView {
             let isCompact = state == .compact || state == .collapsed
             standardButtonsBottomConstraint?.isActive = !isCompact
             compactButtonsTopConstraint.isActive = isCompact
-            buttons.alpha = hidesButtons ? 0 : 1
-            buttons.isUserInteractionEnabled = !hidesButtons
+            buttons.alpha = 0
+            buttons.isHidden = true
+            buttons.isUserInteractionEnabled = false
             layoutIfNeeded()
         }
     }
@@ -281,6 +282,11 @@ final class BottomToolbar: UIView {
         addSubview(backgroundView)
         addSubview(backgroundTopBorderView)
         addSubview(contentView)
+        // Safari-style bottom chrome: keep the address field, remove the legacy
+        // six-button row from the visible interface.
+        buttons.isHidden = true
+        buttons.alpha = 0
+        buttons.isUserInteractionEnabled = false
         contentView.addSubview(buttons)
     }
     
