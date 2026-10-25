@@ -56,7 +56,7 @@ jobs:
             ) {
               variants.push({
                 variant: 'standard',
-                build_args: '--use-sccache --auto-clobber',
+                build_args: '--use-sccache',
                 sccache_namespace: 'standard',
               });
             }
@@ -66,7 +66,7 @@ jobs:
             ) {
               variants.push({
                 variant: 'nojemalloc',
-                build_args: '--disable-jemalloc --use-sccache --auto-clobber',
+                build_args: '--disable-jemalloc --use-sccache',
                 sccache_namespace: 'nojemalloc',
               });
             }
@@ -138,6 +138,17 @@ jobs:
           restore-keys: |
             buildcache-gecko-deps-${{ matrix.variant }}-${{ steps.rust_toolchain.outputs.hash }}-
 
+      # Preserve Gecko's object directory so UI-only changes can use incremental builds.
+      # The key changes when the Gecko release, patches, build script, or toolchain changes.
+      - name: Restore Gecko compiled-object cache
+        id: gecko-objects
+        uses: actions/cache@v4
+        with:
+          path: engine/firefox/obj-*/
+          key: buildcache-gecko-objects-${{ matrix.variant }}-${{ steps.rust_toolchain.outputs.hash }}-${{ hashFiles('engine/release.txt', 'tools/development/build-gecko.sh', 'tools/development/apply-patches.sh', 'tools/patches/**') }}
+          restore-keys: |
+            buildcache-gecko-objects-${{ matrix.variant }}-${{ steps.rust_toolchain.outputs.hash }}-
+
       - name: Restore idevice build cache
         uses: actions/cache@v4
         with:
@@ -151,12 +162,14 @@ jobs:
       - name: Set up sccache
         uses: mozilla-actions/sccache-action@v0.0.11
 
-      - name: Build Gecko
+      - name: Build Gecko (incremental)
         env:
           CC: clang
           CXX: clang++
           LD: ld64.lld
-        run: ./tools/development/build-gecko.sh ${{ matrix.build_args }}
+        run: |
+          echo "Gecko object cache hit: ${{ steps.gecko-objects.outputs.cache-hit }}"
+          ./tools/development/build-gecko.sh ${{ matrix.build_args }}
 
       - name: Build idevice support library
         run: ./tools/development/build-idevice.sh
