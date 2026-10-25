@@ -2,13 +2,9 @@
 //  UserAgentPolicy.swift
 //  Reynard
 //
-//  Created by Minh Ton on 18/6/26.
-//
 
 import Foundation
 import GeckoView
-
-// MARK: - User Agent Configuration
 
 struct UserAgentConfiguration {
     let override: String?
@@ -20,103 +16,31 @@ struct UserAgentConfiguration {
 }
 
 struct UserAgentPolicy {
-    // MARK: - Policy Resolution
-    
+    private let safariUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E152 Safari/607.6"
+
+    // Apply the same User-Agent to every website, without domain-specific
+    // compatibility overrides or separate platform/version/build identifiers.
     func configuration(for url: String, prefersDesktopMode: Bool) -> UserAgentConfiguration {
-        let host = DomainMatcher.host(from: url)
-        let geckoMajorVersion = GeckoRuntime.version.split(whereSeparator: { !$0.isNumber }).first.map(String.init) ?? "0"
-        let chromeMajorVersion = (Int(geckoMajorVersion) ?? 0) + 4
-        let mobileConfiguration = defaultConfiguration(prefersDesktopMode: false)
-        let selectedConfiguration = defaultConfiguration(prefersDesktopMode: prefersDesktopMode)
-        
-        let googleMobileUserAgent = "Mozilla/5.0 (Linux; Android 15; Nexus 5 Build/MRA58N) FxQuantum/\(geckoMajorVersion).0 AppleWebKit/537.36 (KHTML, like Gecko) Chrome/\(chromeMajorVersion).0.0.0 Mobile Safari/537.36"
-        
-        // Always use the Android mobile user agent for AMO to
-        // allow addons installation.
-        if host == "addons.mozilla.org" {
-            return defaultConfiguration(prefersDesktopMode: false, forcesMobileMode: true)
-        }
-        
-        // Addon setting pages also require the Android user agent to work properly.
-        if url.starts(with: "moz-extension://") {
-            return defaultConfiguration(prefersDesktopMode: false, forcesMobileMode: true)
-        }
-        
-        // I have so many people reporting broken UI issues, login
-        // issues, etc on Google services, so this is a compatibility
-        // hack stolen from the Google Search Fixer extension.
-        if Prefs.CompatibilitySettings.useAndroidUserAgent && !prefersDesktopMode,
-           host?.split(separator: ".").contains("google") == true {
-            return compatibilityConfiguration(
-                using: mobileConfiguration,
-                forcesMobileMode: false,
-                userAgentOverride: googleMobileUserAgent
-            )
-        }
-        
-        let usesAndroidUserAgent = Prefs.CompatibilitySettings.useAndroidUserAgent || (host.map { host in
-            Prefs.CompatibilitySettings.androidUserAgentDomains.contains { DomainMatcher.matches(host: host, domain: $0) }
-        } ?? false)
-        
-        guard usesAndroidUserAgent else {
-            return UserAgentConfiguration(
-                override: nil,
-                platformOverride: nil,
-                appVersionOverride: nil,
-                oscpuOverride: nil,
-                buildIDOverride: nil,
-                forcesMobileMode: false
-            )
-        }
-        return compatibilityConfiguration(using: selectedConfiguration, forcesMobileMode: false)
+        return UserAgentConfiguration(
+            override: safariUserAgent,
+            platformOverride: nil,
+            appVersionOverride: nil,
+            oscpuOverride: nil,
+            buildIDOverride: nil,
+            forcesMobileMode: false
+        )
     }
-    
+
     func defaultConfiguration(
         prefersDesktopMode: Bool,
         forcesMobileMode: Bool = false
     ) -> UserAgentConfiguration {
-        let geckoMajorVersion = GeckoRuntime.version.split(whereSeparator: { !$0.isNumber }).first.map(String.init) ?? "0"
-        
-        // It's sad to have the Android UA, because Gecko + iOS
-        // is a super weird combination that websites don't expect!
-        // Fixed Safari-style User-Agent requested for this Reynard build.
-        // This changes the User-Agent string only; it does not turn GeckoView into Safari/WebKit.
-        let mobileUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Mobile/15E148 Safari/604.1"
-        let desktopUserAgent = mobileUserAgent
-        let mobilePlatform = "Linux armv81"
-        let desktopPlatform = "Intel Mac OS X 10.15"
-        let mobileAppVersion = "5.0 (Android 15)"
-        let desktopAppVersion = "5.0 (Macintosh)"
-        
-        let userAgent = prefersDesktopMode ? desktopUserAgent : mobileUserAgent
-        let platform = prefersDesktopMode ? desktopPlatform : mobilePlatform
-        let appVersion = prefersDesktopMode ? desktopAppVersion : mobileAppVersion
         return UserAgentConfiguration(
-            override: userAgent,
-            platformOverride: platform,
-            appVersionOverride: appVersion,
-            oscpuOverride: platform,
+            override: safariUserAgent,
+            platformOverride: nil,
+            appVersionOverride: nil,
+            oscpuOverride: nil,
             buildIDOverride: nil,
-            forcesMobileMode: forcesMobileMode
-        )
-    }
-    
-    private func compatibilityConfiguration(
-        using configuration: UserAgentConfiguration,
-        forcesMobileMode: Bool,
-        userAgentOverride: String? = nil
-    ) -> UserAgentConfiguration {
-        let customUserAgent = Prefs.CompatibilitySettings.customUserAgent
-        let customPlatform = Prefs.CompatibilitySettings.customPlatform
-        let customAppVersion = Prefs.CompatibilitySettings.customAppVersion
-        let customOscpu = Prefs.CompatibilitySettings.customOscpu
-        let customBuildID = Prefs.CompatibilitySettings.customBuildID
-        return UserAgentConfiguration(
-            override: customUserAgent.isEmpty ? userAgentOverride ?? configuration.override : customUserAgent,
-            platformOverride: customPlatform.isEmpty ? configuration.platformOverride : customPlatform,
-            appVersionOverride: customAppVersion.isEmpty ? configuration.appVersionOverride : customAppVersion,
-            oscpuOverride: customOscpu.isEmpty ? configuration.oscpuOverride : customOscpu,
-            buildIDOverride: customBuildID.isEmpty ? nil : customBuildID,
             forcesMobileMode: forcesMobileMode
         )
     }
